@@ -1,0 +1,323 @@
+---
+title: "Poverty"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(tidyverse)
+library(viridis)
+library(DT)
+library(readxl)
+library(sp)
+library(plotly)
+```
+# Monetary Poverty
+Column {data-width=150}
+-----------------------------------------------------------------------
+
+
+**Monetary poverty/Consumption Poverty** 
+is measured by comparing on a person’s or household’s Income
+and Consumption against a predefined poverty line.
+
+
+
+**Official Poverty Line**
+
+Official Poverty line represents the **minimum expenditure per person per month to fulfill the basic needs.**
+Poverty line is an important tool to report the level of 
+poverty statistically which leads to plan the
+policies and programs to reduce poverty effectively.
+
+
+
+**person in poverty** – A person whose real per capita expenditure per month is less than the value of official poverty line.
+
+(Unable to afford minimum calorie intake (2030kcal per day) and basic food and non-food requirement) 
+
+```{r}
+
+```
+
+
+Column {data-width=350}
+-----------------------------------------------------------------------
+
+### 
+
+```{r}
+valueBox(
+  value = "Rs.16,421",
+  caption = "Official national poverty line(2025-May)",
+  icon = "fa-money",
+  color = "lightblue"
+)
+```
+
+###
+
+```{r}
+library(gt)
+library(readxl)
+poverty_lines <- read_excel("official_poverty_lines_May_2025.xlsx")
+
+district_cols <- setdiff(names(poverty_lines), c("Year", "National"))
+# Keep only Year and the calculated column
+df_result <- poverty_lines %>%
+  rowwise() %>%
+  mutate(Districts_Below_National = paste(
+    district_cols[which(c_across(all_of(district_cols)) < National)],
+    collapse = ", "
+  )) %>%
+  ungroup() %>%
+  select(Year, Districts_Below_National)
+
+df_result %>%
+  gt() %>%
+  tab_header(
+    title = "table 1.1- Districts with Poverty Lines Below the National Level",
+    subtitle = "Monthly Data"
+  ) %>%
+  cols_label(
+    Year = "Month-Year",
+    Districts_Below_National = "Districts Below National poverty line"
+  ) %>%
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_column_labels(everything())
+  ) %>%
+  tab_options(
+    table.font.size = "medium",
+    table.border.top.width = px(2),
+    table.border.bottom.width = px(2)
+  )
+```
+
+Column {data-width=350}
+-----------------------------------------------------------------------
+#### Heat map for district vs poverty line
+
+
+```{r}
+data_long <- poverty_lines %>%
+  pivot_longer(
+    cols = -Year,  # exclude Year column from pivoting
+    names_to = "District",
+    values_to = "PovertyLine"
+  )
+
+data <- data_long %>%
+  mutate(Date = parse_date_time(Year, orders = c("Y", "Ym", "Yb")))
+
+library(tidyr)
+
+national_data <- data %>%
+  filter(District == "National")
+q <- ggplot(data_long, aes(x = Year, y = District, fill = PovertyLine)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient(low = "lightblue", high = "darkblue") +
+  labs(title = "Figure 1.2 - Poverty Line by District - Monthly",
+       x = "Month",
+       y = "District",
+       fill = "Poverty Line") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+ggplotly(q)
+
+
+
+
+
+p <- ggplot(national_data,aes(x=Date,y=PovertyLine))+ 
+  geom_line()+labs(title = "Figure 1.3- National Poverty line(2024 jan-2025 May)",
+      y = "National Poverty line",
+       fill = "Poverty Line") +
+  theme_minimal()
+library(plotly)
+ggplotly(p)
+
+```
+
+```{r}
+
+
+
+```
+
+
+
+
+# Multidimensional Poverty
+Column {data-width=30}
+-----------------------------------------------------------------------
+**What is Multidimensional Poverty?**
+
+The global Multidimensional Poverty
+Index(MPI) measures poverty in considering
+three approaches with ten indicators namely:
+
+### Health
+- Nutrition
+- Child mortality
+
+### Education
+- Years of schooling
+- School attendance
+
+### Standard of Living
+- Electricity
+- Drinking water
+- Sanitation
+- Flooring
+- Cooking fuel
+- Assets
+
+
+
+Column {data-width=70}
+-----------------------------------------------------------------------
+###
+
+```{r}
+
+library(flexdashboard)
+
+
+
+# Vulnerable population value box
+valueBox(
+  value = "11.9%",
+  caption = "Vulnerable to Multidimensional Poverty",
+  icon = "fa-exclamation-triangle",
+  color = "orange"
+)
+
+
+```
+###
+
+```{r}
+library(readxl)
+hi <- read_excel("HI.xlsx")
+
+r <- ggplot(hi,aes(x=`censored HI`,y=Dimension,fill = Dimension)) +
+  geom_bar(stat = "identity") +
+  theme_minimal() + labs(title = "Figure 2.1- censored HI by dimension")
+ggplotly(r)
+
+```
+
+
+Column {data-width=70}
+-----------------------------------------------------------------------
+### MPI
+```{r}
+library(readxl)
+
+mpi <- read_excel("MPI.xlsx")
+
+ggplot(mpi, aes(x =area , y = `MPI (Mean)`)) +
+  geom_bar(stat = "identity", fill = "steelblue") +geom_text(aes(label =`MPI (Mean)`),  
+            vjust = -0.5,size = 3.5) +
+  theme_minimal()+ labs(caption ="Figure 2.2- Multidimensional Poverty(MPI) Measures by Sector-2016",
+                        x="Area",y=" Mean Multidimensional Povery Index(MPI)")
+
+
+gmpi <- read_excel("global mpi.xlsx")
+ggplot(gmpi,aes(x=Country,y=`Global MI Index`))+
+   geom_bar(stat = "identity", fill = "lightblue") +geom_text(aes(label =`Global MI Index`),  
+            vjust = -0.5,size = 3.5) +
+  theme_minimal()+labs(caption ="Figure 2.3- Global Multidimensional Poverty(MPI) Index by country",
+                        x="Country",y="Global MPI Index")
+
+
+
+```
+
+
+# Impact of other factors on Poverty
+Column {data-width=350}
+-----------------------------------------------------------------------
+
+### Age group vs PHI
+
+```{r}
+age_group <- read_excel("age group.xlsx")
+
+
+# Reshape to long format
+df_long <- age_group %>%
+  pivot_longer(
+    cols = c(`PHI(Male)`, `PHI(female)`),
+    names_to = "Gender",
+    values_to = "PHI"
+  )
+
+# Clean spaces and set correct order
+df_long$`Age group` <- gsub("\\s+", "", df_long$`Age group`)
+df_long$`Age group` <- factor(
+  df_long$`Age group`,
+  levels = c("0-4", "5-14", "15-24", "25-39", "40-59", "60+")
+)
+
+
+
+invisible(as.character(df_long$`Age group`))
+
+
+# Keep factor for plotting (order)
+df_long$`Age group` <- factor(
+  df_long$`Age group`,
+  levels = c("0-4", "5-14", "15-24", "25-39", "40-59", "60+")
+)
+
+# Optional: don't print anything else in console
+invisible(df_long)
+
+
+
+# Plot
+fig <- ggplot(df_long, aes(x = `Age group`, y = PHI, fill = Gender)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
+  geom_text(aes(label = PHI), position = position_dodge(width = 0.9), 
+            vjust = -0.3, size = 3) +
+  labs(
+    x = "Age Group",
+    y = "Poverty Headcount Index (PHI)",
+    fill = "Gender",
+    title = "Figure 3.1 - PHI by Age Group and Gender"
+  ) +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+
+
+ggplotly(fig)
+
+
+```
+
+Column {data-width=650}
+-----------------------------------------------------------------------
+### social protection program vs PHI
+
+
+**The most contributory significant social protection programs are the pension scheme and Samurdhi.**
+
+
+```{r}
+ social_pp <- read_excel("social protection program.xlsx")
+s <- ggplot(social_pp, aes(x = `social protection program`, y = PHI,, fill =`social protection program`)) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  labs(title="Figure 3.2- social protection program type vs PHI value",x = "social program", y = "PHI Value") +
+   theme_minimal()
+ggplotly(s)
+
+```
+
+
+
+
